@@ -38,8 +38,14 @@ export const Header = () => {
           icon: <UserIcon className="h-4 w-4" />,
         },
         {
-          label: "我的拍品",
-          href: "/myNFTs",
+          label: "我的资源",
+          href: "/myEdus",
+          condition: isAuthenticated && !isAccrediting,
+          icon: <UserIcon className="h-4 w-4" />,
+        },
+        {
+          label: "我的购买资源",
+          href: "/myPurchases",
           condition: isAuthenticated && !isAccrediting,
           icon: <UserIcon className="h-4 w-4" />,
         },
@@ -60,36 +66,6 @@ export const Header = () => {
           href: "/eduMessage",
           condition: isAuthenticated && !isAccrediting,
           icon: <BugAntIcon className="h-4 w-4" />,
-        },
-        {
-          label: "查看机构信息",
-          href: "/getUserMessage",
-          condition: isAuthenticated && isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
-        },
-        {
-          label: "更新机构信息",
-          href: "/userMessage",
-          condition: isAuthenticated && isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
-        },
-        {
-          label: "鉴定",
-          href: "/authenticate",
-          condition: isAuthenticated && isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
-        },
-        {
-          label: "我的鉴定",
-          href: "/myauthmessage",
-          condition: isAuthenticated && isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
-        },
-        {
-          label: "我的授权",
-          href: "/power",
-          condition: isAuthenticated,
-          icon: <UserIcon className="h-4 w-4" />,
         },
         {
           label: "注销", // 退出登录

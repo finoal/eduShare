@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useScaffoldContract, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-import { usePublicClient } from "wagmi";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { useRouter } from "next/navigation";
 
 // 定义教育资源接口
@@ -25,16 +24,13 @@ export interface EduResource {
   accreditedInstitutions: string[];
   buyers: string[];
   creationTime: string;
-  lastUpdateTime: string;
-  isActive: boolean;
   minRating: string;
-  requiredIntegral: string;
   reviews: string[];
   reviewers: string[];
   image?: string; // 从eduUri解析的图片
 }
 
-const PAGE_SIZE = 3; // 每页显示的资源数量
+const PAGE_SIZE = 6; // 每页显示的资源数量，增加到6个
 
 // 学科列表
 const subjects = [
@@ -57,19 +53,17 @@ const subjects = [
 
 const EduResourcePage = () => {
   const router = useRouter();
-  const [resources, setResources] = useState<EduResource[]>([]);
   const [filteredResources, setFilteredResources] = useState<EduResource[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<string>(""); // 当前选中的学科
-  const [purchasingStates, setPurchasingStates] = useState<{[key: string]: boolean}>({}); // 记录每个资源的购买状态
-  const publicClient = usePublicClient();
+  const [selectedSubject, setSelectedSubject] = useState<string>("语文"); // 默认选中语文学科
+  
+  // 使用useRef跟踪数据是否已加载，避免重复加载
+  const subjectDataLoaded = useRef<{[key: string]: boolean}>({});
 
   const { data: yourCollectibleContract } = useScaffoldContract({
     contractName: "YourCollectible",
   });
-
-  const { writeContractAsync } = useScaffoldWriteContract("YourCollectible");
 
   // 从IPFS获取元数据
   const getMetadataFromIPFS = async (uri: string) => {
@@ -88,9 +82,15 @@ const EduResourcePage = () => {
   };
 
   // 处理学科选择
-  const handleSubjectSelect = async (subject: string) => {
+  const handleSubjectSelect = useCallback(async (subject: string) => {
+    // 如果已经加载过该学科的数据，且不是强制刷新，则不重新加载
+    if (subjectDataLoaded.current[subject] && selectedSubject === subject) {
+      return;
+    }
+    
     setIsLoading(true);
     setSelectedSubject(subject);
+    
     try {
       if (!yourCollectibleContract) return;
       console.log(subject);
@@ -99,9 +99,10 @@ const EduResourcePage = () => {
       console.log(resourceIds);
       
       if (!resourceIds || resourceIds.length === 0) {
-        setResources([]);
         setFilteredResources([]);
         setIsLoading(false);
+        // 标记该学科数据已加载
+        subjectDataLoaded.current[subject] = true;
         return;
       }
       
@@ -122,9 +123,28 @@ const EduResourcePage = () => {
           
           // 构建资源对象
           const resource: EduResource = {
-            ...resourceData,
             tokenId: id.toString(),
-            image,
+            price: resourceData.price.toString(),
+            creator: resourceData.creator,
+            isListed: resourceData.isListed,
+            eduUri: resourceData.eduUri,
+            tokenUri: resourceData.tokenUri,
+            resourceType: resourceData.resourceType,
+            subject: resourceData.subject,
+            educationLevel: resourceData.educationLevel,
+            downloadCount: resourceData.downloadCount.toString(),
+            rating: resourceData.rating.toString(),
+            ratingCount: resourceData.ratingCount.toString(),
+            commentIds: Array.from(resourceData.commentIds).map(id => id.toString()),
+            isAccredited: resourceData.isAccredited,
+            accreditedCount: resourceData.accreditedCount.toString(),
+            accreditedInstitutions: Array.from(resourceData.accreditedInstitutions),
+            buyers: Array.from(resourceData.buyers),
+            creationTime: resourceData.creationTime.toString(),
+            minRating: resourceData.minRating.toString(),
+            reviews: Array.from(resourceData.reviews),
+            reviewers: Array.from(resourceData.reviewers),
+            image: image
           };
           
           resourcesData.push(resource);
@@ -133,53 +153,54 @@ const EduResourcePage = () => {
         }
       }
       
-      setResources(resourcesData);
       setFilteredResources(resourcesData);
       setCurrentPage(1); // 重置到第一页
+      
+      // 标记该学科数据已加载
+      subjectDataLoaded.current[subject] = true;
     } catch (error) {
       console.error("获取学科资源失败:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [yourCollectibleContract, selectedSubject]);
 
-  // 处理购买资源
-  const handlePurchase = async (resource: EduResource) => {
-    if (!resource.isListed) return;
-    
-    // 设置当前资源为购买中状态
-    setPurchasingStates(prev => ({ ...prev, [resource.tokenId]: true }));
-    
-    try {
-      const tx = await writeContractAsync({
-        functionName: "purchaseEducationalResource",
-        args: [BigInt(resource.tokenId)],
-        value: BigInt(resource.price),
-      });
-      
-      const receipt = await publicClient?.getTransactionReceipt({ hash: tx as `0x${string}` });
-      console.log(receipt);
-      alert(`购买资源 ${resource.tokenId} 成功！`);
-    } catch (error) {
-      console.error(`购买资源 ${resource.tokenId} 失败:`, error);
-      alert(`购买资源 ${resource.tokenId} 失败，请检查您的钱包余额。`);
-    } finally {
-      // 无论成功失败，都重置购买状态
-      setPurchasingStates(prev => ({ ...prev, [resource.tokenId]: false }));
-    }
-  };
+  // 查看详情
+  const viewDetails = useCallback((tokenId: string) => {
+    router.push(`/eduMessage/details/${tokenId}`);
+  }, [router]);
 
-  // 初始加载时选择第一个学科
+  // 初始加载时选择语文学科
   useEffect(() => {
-    if (subjects.length > 0 && !selectedSubject) {
-      handleSubjectSelect(subjects[0]);
+    if (yourCollectibleContract && !subjectDataLoaded.current["语文"]) {
+      handleSubjectSelect("语文");
     }
-  }, [yourCollectibleContract]);
+  }, [yourCollectibleContract, handleSubjectSelect]);
+
+  // 格式化时间
+  const formatDate = useCallback((timestamp: string) => {
+    return new Date(Number(timestamp) * 1000).toLocaleString();
+  }, []);
+
+  // 格式化评分
+  const formatRating = useCallback((rating: string, ratingCount: string) => {
+    if (!ratingCount || Number(ratingCount) === 0) return "暂无评分";
+    return (Number(rating) / Number(ratingCount)).toFixed(1);
+  }, []);
+
+  // 刷新数据
+  const refreshData = useCallback(() => {
+    if (selectedSubject) {
+      // 重置该学科的加载状态，强制重新加载
+      subjectDataLoaded.current[selectedSubject] = false;
+      handleSubjectSelect(selectedSubject);
+    }
+  }, [selectedSubject, handleSubjectSelect]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center mt-10">
-        <span className="loading loading-spinner loading-lg"></span>
+        <span className="loading loading-spinner loading-lg text-pink-500"></span>
       </div>
     );
   }
@@ -191,14 +212,14 @@ const EduResourcePage = () => {
   );
 
   return (
-    <div className="container mx-auto bg-gradient-to-r from-pink-100 to-pink-200 min-h-screen p-4">
+    <div className="container mx-auto bg-gradient-to-b from-pink-100 to-white min-h-screen p-4">
       {/* 学科分类菜单栏 */}
       <div className="mb-6 overflow-x-auto">
         <div className="flex space-x-2 pb-2">
           {subjects.map((subject) => (
             <button
               key={subject}
-              className={`btn ${selectedSubject === subject ? 'btn-primary bg-pink-500 border-pink-500' : 'btn-outline border-pink-400 text-pink-600'} whitespace-nowrap`}
+              className={`btn ${selectedSubject === subject ? 'bg-pink-500 text-white border-pink-500' : 'btn-outline border-pink-400 text-pink-600'} whitespace-nowrap`}
               onClick={() => handleSubjectSelect(subject)}
             >
               {subject}
@@ -207,9 +228,20 @@ const EduResourcePage = () => {
         </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-center mb-6 text-pink-700">
-        {selectedSubject || "全部"} 教育资源
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-pink-700">
+          {selectedSubject} 教育资源
+        </h1>
+        <button 
+          className="btn bg-pink-500 hover:bg-pink-600 text-white"
+          onClick={refreshData}
+        >
+          <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          刷新数据
+        </button>
+      </div>
 
       {filteredResources.length === 0 ? (
         <div className="flex justify-center items-center mt-10">
@@ -234,7 +266,7 @@ const EduResourcePage = () => {
                     }}
                   />
                 </figure>
-                <div className="card-body bg-gradient-to-b from-pink-50 to-white">
+                <div className="card-body bg-gradient-to-b from-pink-50 to-white p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="badge badge-primary bg-pink-500 text-white border-pink-500 p-3">
                       {resource.resourceType}
@@ -245,44 +277,33 @@ const EduResourcePage = () => {
                   </div>
                   
                   <h3 className="text-lg font-semibold text-gray-800 mt-2 mb-1">
-                    {resource.subject} 教育资源
+                    {resource.subject} 教育资源 #{resource.tokenId}
                   </h3>
                   
-                  {/* 显示资源状态 */}
+                  {/* 上架状态 */}
                   <div className="mt-2 mb-2">
-                    <span className={`badge ${resource.isListed ? 'badge-success bg-green-500 border-green-500' : 'badge-warning bg-yellow-500 border-yellow-500'} text-white p-2`}>
+                    <span className={`badge ${resource.isListed ? 'bg-green-500 border-green-500' : 'bg-yellow-500 border-yellow-500'} text-white p-2`}>
                       {resource.isListed ? '已上架' : '未上架'}
                     </span>
+                    {resource.isListed && (
+                      <span className="ml-2 text-sm text-pink-600 font-semibold">
+                        价格: {Number(resource.price)/10**18} ETH
+                      </span>
+                    )}
                   </div>
                   
-                  {/* 只有上架的资源才显示价格和购买按钮 */}
-                  {resource.isListed && (
-                    <div className="mt-4 flex justify-between items-center">
-                      <span className="text-lg font-bold text-pink-600">
-                        {Number(resource.price)} ETH
-                      </span>
-                      <button
-                        className="btn btn-primary bg-pink-500 border-pink-500 hover:bg-pink-600"
-                        onClick={() => handlePurchase(resource)}
-                        disabled={purchasingStates[resource.tokenId]}
-                      >
-                        {purchasingStates[resource.tokenId] ? (
-                          <>
-                            <span className="loading loading-spinner loading-xs mr-2"></span>
-                            购买中...
-                          </>
-                        ) : (
-                          "购买"
-                        )}
-                      </button>
-                    </div>
-                  )}
+                  {/* 资源信息 */}
+                  <div className="mt-2 space-y-1 text-sm text-gray-600">
+                    <p>下载次数: {resource.downloadCount}</p>
+                    <p>评分: {formatRating(resource.rating, resource.ratingCount)} ({resource.ratingCount}人评价)</p>
+                    <p>创建时间: {formatDate(resource.creationTime)}</p>
+                  </div>
                   
-                  {/* 详情按钮 - 所有资源都显示 */}
-                  <div className="mt-3">
+                  {/* 详情按钮 */}
+                  <div className="mt-4">
                     <button
-                      className="btn btn-outline w-full border-pink-400 text-pink-600 hover:bg-pink-100"
-                      onClick={() => router.push(`/nftMessage?id=${resource.tokenId}`)}
+                      className="btn btn-primary w-full bg-pink-500 border-pink-500 hover:bg-pink-600 text-white"
+                      onClick={() => viewDetails(resource.tokenId)}
                     >
                       查看详情
                     </button>
