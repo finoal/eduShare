@@ -55,6 +55,7 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
   const [hoveredRating, setHoveredRating] = useState(0);
   const [hasRated, setHasRated] = useState(false);
   const [jsonData, setJsonData] = useState<any>(null);
+  const [commentSortOrder, setCommentSortOrder] = useState<"newest" | "oldest">("oldest");
   const hasLoadedData = useRef(false);
   const addressRef = useRef<string | undefined>(address);
 
@@ -255,6 +256,20 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
     return new Date(timestamp * 1000).toLocaleString();
   }, []);
 
+  // 切换评论排序顺序
+  const toggleCommentSort = useCallback(() => {
+    setCommentSortOrder(prev => prev === "newest" ? "oldest" : "newest");
+  }, []);
+
+  // 获取排序后的评论
+  const getSortedComments = useCallback(() => {
+    if (commentSortOrder === "newest") {
+      return [...comments].filter(comment => comment.parentId === 0).sort((a, b) => b.timestamp - a.timestamp);
+    } else {
+      return [...comments].filter(comment => comment.parentId === 0).sort((a, b) => a.timestamp - b.timestamp);
+    }
+  }, [comments, commentSortOrder]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-pink-100 to-white flex justify-center items-center">
@@ -450,7 +465,18 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
         
         {/* 评论区域 */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-pink-200 mt-8 p-6">
-          <h3 className="text-xl font-bold text-pink-800 mb-4">评论 ({comments.length})</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-pink-800">评论 ({comments.length})</h3>
+            <button 
+              className="btn btn-sm bg-pink-400 hover:bg-pink-500 text-white"
+              onClick={toggleCommentSort}
+            >
+              {commentSortOrder === "newest" ? "查看最早评论" : "查看最新评论"}
+              <svg className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+            </button>
+          </div>
           
           {/* 添加评论 */}
           <div className="mb-6">
@@ -480,7 +506,7 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
             </div>
           ) : (
             <div className="space-y-4">
-              {comments.filter(comment => comment.parentId === 0).map((comment) => (
+              {getSortedComments().map((comment) => (
                 <div key={comment.id} className="bg-pink-50 p-4 rounded-lg">
                   <div className="flex items-start">
                     <div className="flex-grow">

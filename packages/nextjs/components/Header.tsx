@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { UserIcon, UserCircleIcon, Bars3Icon, BugAntIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { UserIcon, UserCircleIcon, Bars3Icon, ShoppingCartIcon, DocumentTextIcon,XCircleIcon, ViewColumnsIcon, VideoCameraIcon, TableCellsIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useAuth } from "./AuthContext";
 
@@ -32,28 +32,22 @@ export const Header = () => {
   const menuLinks: HeaderMenuLink[] = isAuthenticated
     ? [
         {
-          label: "仪表盘",
-          href: "/dashboard",
-          condition: isAuthenticated && !isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
-        },
-        {
           label: "我的资源",
           href: "/myEdus",
           condition: isAuthenticated && !isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
+          icon: <ViewColumnsIcon className="h-4 w-4" />,
         },
         {
           label: "我的购买资源",
           href: "/myPurchases",
           condition: isAuthenticated && !isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
+          icon: <TableCellsIcon className="h-4 w-4" />,
         },
         {
           label: "上传教育资源",
           href: "/createNft",
           condition: isAuthenticated && !isAccrediting,
-          icon: <UserIcon className="h-4 w-4" />,
+          icon: <VideoCameraIcon className="h-4 w-4" />,
         },
         {
           label: "个人信息",
@@ -65,13 +59,13 @@ export const Header = () => {
           label: "资源广场",
           href: "/eduMessage",
           condition: isAuthenticated && !isAccrediting,
-          icon: <BugAntIcon className="h-4 w-4" />,
+          icon: <ShoppingCartIcon className="h-4 w-4" />,
         },
         {
           label: "注销", // 退出登录
           href: "", // 避免 href 冲突，全部由 onClick 控制
           condition: isAuthenticated, // 登录状态时显示
-          icon: <UserCircleIcon className="h-4 w-4" />,
+          icon: <XCircleIcon className="h-4 w-4" />,
           onClick: logout, // 调用注销逻辑
         },
         {
