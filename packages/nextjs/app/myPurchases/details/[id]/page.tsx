@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 import { getMetadataFromIPFS } from "~~/utils/simpleNFT/ipfs-fetch";
 import { DownloadButton } from "~~/app/myPurchases/_components/DownloadButton";
+import { handleContractCallWithBlockData } from "~~/utils/scaffold-eth/blockchainTransactions";
 
 interface Comment {
   id: number;
@@ -48,6 +49,7 @@ interface ResourceDetails {
 export default function ResourceDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const [resource, setResource] = useState<ResourceDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -186,10 +188,21 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
     }
     
     try {
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "addComment",
         args: [BigInt(resource.id), newComment, BigInt(0)],
       });
+
+      // 保存区块数据
+      if (tx && addressRef.current && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          addressRef.current,
+          publicClient,
+          "提交教育资源评论",
+          false
+        );
+      }
       
       notification.success("评论提交成功");
       setNewComment("");
@@ -202,7 +215,7 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
       console.error("提交评论失败:", error);
       notification.error("提交评论失败");
     }
-  }, [newComment, resource, writeContractAsync, fetchResourceDetails]);
+  }, [newComment, resource, writeContractAsync, fetchResourceDetails, publicClient]);
 
   // 提交评分
   const submitRating = useCallback(async () => {
@@ -212,10 +225,21 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
     }
     
     try {
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "rateResource",
         args: [BigInt(resource.id), BigInt(userRating)],
       });
+
+      // 保存区块数据
+      if (tx && addressRef.current && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          addressRef.current,
+          publicClient,
+          "评价教育资源",
+          false
+        );
+      }
       
       notification.success("评分提交成功");
       setHasRated(true);
@@ -228,17 +252,28 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
       console.error("提交评分失败:", error);
       notification.error("提交评分失败");
     }
-  }, [userRating, resource, writeContractAsync, fetchResourceDetails]);
+  }, [userRating, resource, writeContractAsync, fetchResourceDetails, publicClient]);
 
   // 点赞评论
   const likeComment = useCallback(async (commentId: number) => {
     if (!addressRef.current || !resource) return;
     
     try {
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "likeComment",
         args: [BigInt(commentId)],
       });
+
+      // 保存区块数据
+      if (tx && addressRef.current && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          addressRef.current,
+          publicClient,
+          "点赞评论",
+          false
+        );
+      }
       
       notification.success("点赞成功");
       
@@ -250,7 +285,7 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
       console.error("点赞失败:", error);
       notification.error("点赞失败");
     }
-  }, [resource, writeContractAsync, fetchResourceDetails]);
+  }, [resource, writeContractAsync, fetchResourceDetails, publicClient]);
 
   // 格式化时间
   const formatDate = useCallback((timestamp: number) => {

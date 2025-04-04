@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { UserIcon, UserCircleIcon, Bars3Icon, ShoppingCartIcon, DocumentTextIcon,XCircleIcon, ViewColumnsIcon, VideoCameraIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import { UserIcon, UserCircleIcon, Bars3Icon, ShoppingCartIcon, DocumentTextIcon,XCircleIcon, ViewColumnsIcon, VideoCameraIcon, TableCellsIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useAuth } from "./AuthContext";
 
@@ -48,6 +48,12 @@ export const Header = () => {
           href: "/createNft",
           condition: isAuthenticated && !isAccrediting,
           icon: <VideoCameraIcon className="h-4 w-4" />,
+        },
+        {
+          label: "区块链分析",
+          href: "/blockchainAnalytics",
+          condition: isAuthenticated && !isAccrediting,
+          icon: <ChartBarIcon className="h-4 w-4" />,
         },
         {
           label: "个人信息",
@@ -156,7 +162,7 @@ export const Header = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-bold leading-tight text-pink-800">教育平台</span>
-            <span className="text-xs text-pink-600"></span>
+            <span className="text-xs text-pink-600">共享学习资源</span>
           </div>
         </Link>
         <ul className="hidden xl:flex xl:flex-nowrap menu menu-horizontal px-1 gap-2">

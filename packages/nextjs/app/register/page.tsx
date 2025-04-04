@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { message } from "antd"; // 替换原来的 notification
 import { useRouter } from "next/navigation";
+import { usePublicClient } from "wagmi";
+import { handleContractCallWithBlockData } from "~~/utils/scaffold-eth/blockchainTransactions";
 
 // Pinata 配置
 const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0YzA5Zjc2Yy1hMGU1LTQzYWMtYjdlMi1iNTQwYTEwYjJiNjkiLCJlbWFpbCI6IjI4MjQ4OTgzMjJAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjY0ZGQxNmFjYTQwYTY2NmY2ZmM5Iiwic2NvcGVkS2V5U2VjcmV0IjoiNzU5NWQxNjljNzYyNjc3YzEzZmIxOTMwNzBlOTExMDM4ZGIyZGExZDZlMjliOTJlNTliZmIwMDg4ZWI1ZmNiNyIsImV4cCI6MTc3MzA2ODI0Mn0.O5n6iTF9XlLPf5f7IhgOlKLuOAtuRaS5DtKAkoLZAaE";
@@ -31,6 +33,7 @@ const uploadToPinata = async (file: File): Promise<string> => {
 
 const RegisterPage: React.FC = () => {
   const { writeContractAsync } = useScaffoldWriteContract("YourCollectible");
+  const publicClient = usePublicClient();
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage(); // 添加 message 实例
 
@@ -85,11 +88,11 @@ const RegisterPage: React.FC = () => {
       messageApi.loading("正在注册用户...");
 
       // 调用智能合约的 registerUser 方法
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "registerUser",
         args: [userName, password, avatar, bio],
       });
-
+      console.log(tx);
       messageApi.success("用户注册成功！");
       router.push("/login");
     } catch (error) {

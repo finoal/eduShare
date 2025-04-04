@@ -10,6 +10,7 @@
 
 body {
   min-height: 100vh;
+  background-color: #fff0f6;
 }
 
 h1,
@@ -18,10 +19,12 @@ h3,
 h4 {
   margin-bottom: 0.5rem;
   line-height: 1;
+  color: #c41d7f;
 }
 
 p {
   margin: 1rem 0;
+  color: #eb2f96;
 }
 
 .btn {
@@ -30,4 +33,49 @@ p {
 
 .btn.btn-ghost {
   @apply shadow-none;
+}
+
+/* 粉色系统主题样式 */
+.btn-primary {
+  background-color: #eb2f96 !important;
+  border-color: #eb2f96 !important;
+}
+
+.btn-primary:hover {
+  background-color: #f759ab !important;
+  border-color: #f759ab !important;
+}
+
+.text-primary {
+  color: #eb2f96 !important;
+}
+
+.bg-base-100 {
+  background-color: #fff0f6 !important;
+}
+
+.bg-base-200 {
+  background-color: #ffadd2 !important;
+}
+
+.card {
+  border-color: #ffadd2;
+  box-shadow: 0 4px 12px rgba(235, 47, 150, 0.1);
+}
+
+.card-title {
+  color: #c41d7f !important;
+}
+
+.link {
+  color: #eb2f96;
+}
+
+.link:hover {
+  color: #c41d7f;
+}
+
+.input:focus {
+  border-color: #eb2f96 !important;
+  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
 }

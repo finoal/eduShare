@@ -8,6 +8,7 @@ import { useScaffoldContract, useScaffoldWriteContract } from "~~/hooks/scaffold
 import { notification } from "~~/utils/scaffold-eth";
 import { usePublicClient } from "wagmi";
 import { getMetadataFromIPFS } from "~~/utils/simpleNFT/ipfs-fetch";
+import { handleContractCallWithBlockData } from "~~/utils/scaffold-eth/blockchainTransactions";
 
 interface Comment {
   id: number;
@@ -219,6 +220,17 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
         args: [BigInt(resource.id)],
         value: resource.price,
       });
+      
+      // 保存区块交易数据
+      if (tx && address && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          address,
+          publicClient,
+          "购买教育资源",
+          false // 不显示额外通知，避免与后续成功通知重复
+        );
+      }
       
       const receipt = await publicClient?.getTransactionReceipt({ hash: tx as `0x${string}` });
       console.log(receipt);

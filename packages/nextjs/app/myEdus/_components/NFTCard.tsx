@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useCallback, memo } from "react";
+import { usePublicClient, useAccount } from "wagmi";
 import { Collectible } from "./MyHoldings";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
+import { handleContractCallWithBlockData } from "~~/utils/scaffold-eth/blockchainTransactions";
 
 // 使用memo包装组件，避免不必要的重新渲染
 const NFTCard = memo(({ nft, updateCollectible }: { nft: Collectible; updateCollectible: (updatedNft: Collectible) => void }) => {
   const { writeContractAsync } = useScaffoldWriteContract("YourCollectible");
+  const publicClient = usePublicClient();
+  const { address } = useAccount();
   const [showDetails, setShowDetails] = useState(false);
   const [price, setPrice] = useState("");
 
@@ -41,11 +45,22 @@ const NFTCard = memo(({ nft, updateCollectible }: { nft: Collectible; updateColl
     
     const notificationId = notification.loading("正在上架教育资源...");
     try {
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "listEducationalResource",
         args: [BigInt(nft.id.toString()), priceInWei],
         value: listingFee,
       });
+
+      // 保存区块数据
+      if (tx && address && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          address,
+          publicClient,
+          "上架教育资源NFT",
+          false
+        );
+      }
 
       notification.remove(notificationId);
       notification.success("教育资源上架成功！");
@@ -55,16 +70,27 @@ const NFTCard = memo(({ nft, updateCollectible }: { nft: Collectible; updateColl
       notification.error("教育资源上架失败！");
       console.error(error);
     }
-  }, [nft, price, updateCollectible, writeContractAsync]);
+  }, [nft, price, updateCollectible, writeContractAsync, address, publicClient]);
 
   // 下架资源
   const handleUnlistResource = useCallback(async () => {
     const notificationId = notification.loading("正在下架教育资源...");
     try {
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         functionName: "unlistEducationalResource",
         args: [BigInt(nft.id.toString())],
       });
+
+      // 保存区块数据
+      if (tx && address && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          address,
+          publicClient,
+          "下架教育资源NFT",
+          false
+        );
+      }
 
       notification.remove(notificationId);
       notification.success("教育资源下架成功！");
@@ -74,7 +100,7 @@ const NFTCard = memo(({ nft, updateCollectible }: { nft: Collectible; updateColl
       notification.error("教育资源下架失败！");
       console.error(error);
     }
-  }, [nft, updateCollectible, writeContractAsync]);
+  }, [nft, updateCollectible, writeContractAsync, address, publicClient]);
 
   // 处理价格输入变化
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

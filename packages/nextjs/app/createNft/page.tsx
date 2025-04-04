@@ -6,6 +6,7 @@ import { notification } from "~~/utils/scaffold-eth";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { NextPage } from "next";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import { handleContractCallWithBlockData } from "~~/utils/scaffold-eth/blockchainTransactions";
 
 // Pinata 配置
 const PINATA_API = {
@@ -182,62 +183,28 @@ const CreateNft: NextPage = () => {
           educationLevel
         ],
       });
-      // const receipt = await publicClient?.getTransactionReceipt({ hash: tx as `0x${string}` });
+      
+      // 使用区块链交易工具保存区块数据
+      if (tx && address && publicClient) {
+        await handleContractCallWithBlockData(
+          tx as string,
+          address,
+          publicClient,
+          "创建教育资源NFT",
+          false // 不显示额外通知，避免与后续成功通知重复
+        );
+      }
+
       const receipt = await publicClient?.getTransactionReceipt({
         hash: tx as `0x${string}`,
       });
-      console.log(receipt);
-      // 从收据中获取区块高度和交易哈希值
-      const blockNumber = receipt?.blockNumber; // 区块高度
-      const transactionHash = receipt?.transactionHash; // 交易哈希值
-      // 获取区块详细信息以获取时间戳
-      const block = await publicClient?.getBlock({
-        blockNumber: blockNumber,
-      });
-
-      // 区块时间戳
-      const blockTimestamp = block?.timestamp;
       
-      // 将区块链数据保存到数据库
-      try {
-        // 准备交易数据 - 简化，只包含必要的区块链信息
-        const transactionData = {
-          blockNumber: blockNumber?.toString(),
-          blockTimestamp: blockTimestamp?.toString(),
-          transactionHash,
-          fromAddress: address,
-          toAddress: receipt?.to || "", // 合约地址
-          gas: Number(receipt?.gasUsed.toString()) || 0,
-          operationDescription: "创建教育资源NFT"
-        };
-
-        console.log('发送区块链数据到服务器:', transactionData);
-
-        // 发送请求到后端API保存交易记录
-        const response = await fetch('http://localhost:3001/saveTransactionFromClient', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(transactionData),
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-          console.log('区块链交易记录已保存到数据库');
-        } else {
-          console.error('保存区块链交易记录失败:', result.message);
-        }
-      } catch (error) {
-        console.error('保存区块链交易记录时出错:', error);
-      }
-
       if (receipt?.status === "success") {
         notification.success("教育资源创建成功！");
       } else {
         notification.error("教育资源创建失败");
       }
+      
       // 清空表单
       setFile(null);
       setPreview("");
