@@ -57,6 +57,7 @@
     "mysql2": "^3.13.0",
     "react-chartjs-2": "^5.0.0",
     "react-router-dom": "^7.1.1",
+    "recharts": "^2.15.2",
     "viem": "^2.23.7",
     "web3": "^4.16.0",
     "web3modal": "^1.9.12"
